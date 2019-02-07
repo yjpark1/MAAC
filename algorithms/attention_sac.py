@@ -248,7 +248,7 @@ class AttentionSAC(object):
                               env.observation_space):
             if acsp.__class__.__name__ == 'MultiDiscrete':
                 agent_init_params.append({'num_in_pol': obsp.shape[0],
-                                          'num_out_pol': sum(acsp.high + 1)})
+                                          'num_out_pol': acsp.high + 1})
                 sa_size.append((obsp.shape[0], sum(acsp.high + 1)))
             else:
                 agent_init_params.append({'num_in_pol': obsp.shape[0],

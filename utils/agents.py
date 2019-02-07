@@ -2,7 +2,8 @@ from torch import Tensor
 from torch.autograd import Variable
 from torch.optim import Adam
 from utils.misc import hard_update, gumbel_softmax, onehot_from_logits
-from utils.policies import DiscretePolicy
+from utils.policies import DiscretePolicy, MultiDiscretePolicy
+import numpy
 
 class AttentionAgent(object):
     """
@@ -15,13 +16,22 @@ class AttentionAgent(object):
             num_in_pol (int): number of dimensions for policy input
             num_out_pol (int): number of dimensions for policy output
         """
-        self.policy = DiscretePolicy(num_in_pol, num_out_pol,
-                                     hidden_dim=hidden_dim,
-                                     onehot_dim=onehot_dim)
-        self.target_policy = DiscretePolicy(num_in_pol,
-                                            num_out_pol,
-                                            hidden_dim=hidden_dim,
-                                            onehot_dim=onehot_dim)
+        if type(num_out_pol) == numpy.ndarray:
+            self.policy = MultiDiscretePolicy(num_in_pol, num_out_pol,
+                                              hidden_dim=hidden_dim,
+                                              onehot_dim=onehot_dim)
+            self.target_policy = MultiDiscretePolicy(num_in_pol,
+                                                     num_out_pol,
+                                                     hidden_dim=hidden_dim,
+                                                     onehot_dim=onehot_dim)
+        else:
+            self.policy = DiscretePolicy(num_in_pol, num_out_pol,
+                                         hidden_dim=hidden_dim,
+                                         onehot_dim=onehot_dim)
+            self.target_policy = DiscretePolicy(num_in_pol,
+                                                num_out_pol,
+                                                hidden_dim=hidden_dim,
+                                                onehot_dim=onehot_dim)
 
         hard_update(self.target_policy, self.policy)
         self.policy_optimizer = Adam(self.policy.parameters(), lr=lr)

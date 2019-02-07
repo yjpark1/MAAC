@@ -81,7 +81,7 @@ class DiscretePolicy(BasePolicy):
         return rets
 
 
-class MultiDiscretePolicy:
+class MultiDiscretePolicy(nn.Module):
     """
     Policy Network for multi-discrete action spaces
     """
@@ -118,8 +118,8 @@ class MultiDiscretePolicy:
         """
         onehot = None
         if type(obs) is tuple:
-            X, onehot = obs
-        inp = self.in_fn(X)  # don't batchnorm onehot
+            obs, onehot = obs
+        inp = self.in_fn(obs)  # don't batchnorm onehot
         if onehot is not None:
             inp = torch.cat((onehot, inp), dim=1)
         h1 = self.nonlin(self.fc1(inp))
@@ -132,21 +132,32 @@ class MultiDiscretePolicy:
 
         on_gpu = next(self.parameters()).is_cuda
         if sample:
-            int_act, act = categorical_sample(probs, use_cuda=on_gpu)
+            int_act1, act1 = categorical_sample(probs1, use_cuda=on_gpu)
+            int_act2, act2 = categorical_sample(probs2, use_cuda=on_gpu)
         else:
-            act = onehot_from_logits(probs)
+            act1 = onehot_from_logits(probs1)
+            act2 = onehot_from_logits(probs2)
+
+        act = torch.cat([act1, act2], dim=-1)
         rets = [act]
         if return_log_pi or return_entropy:
-            log_probs = F.log_softmax(out, dim=1)
+            log_probs1 = F.log_softmax(out1, dim=1)
+            log_probs2 = F.log_softmax(out2, dim=1)
         if return_all_probs:
+            probs = torch.cat([probs1, probs2], dim=-1)
             rets.append(probs)
         if return_log_pi:
             # return log probability of selected action
-            rets.append(log_probs.gather(1, int_act))
+            rets.append(torch.cat([log_probs1.gather(1, int_act1), log_probs2.gather(1, int_act2)], dim=-1))
         if regularize:
-            rets.append([(out ** 2).mean()])
+            rets.append([(out1 ** 2).mean() + (out2 ** 2).mean()])
         if return_entropy:
-            rets.append(-(log_probs * probs).sum(1).mean())
+            rets.append(-(log_probs1 * probs1).sum(1).mean() - (log_probs2 * probs2).sum(1).mean())
         if len(rets) == 1:
             return rets[0]
         return rets
+
+if __name__ == '__main__':
+    import numpy as np
+    actor = MultiDiscretePolicy(input_dim=5, out_dim=np.array([3, 4]))
+    actor.parameters()

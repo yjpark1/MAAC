@@ -83,8 +83,6 @@ def run(config, run_num):
                          for i in range(model.nagents)]
             # get actions as torch Variables
             torch_agent_actions = model.step(torch_obs, explore=True)
-            action_n_env = [np.concatenate([x, y], axis=-1) for x, y in zip(action_n[0][0], action_n[1][0])]
-
             # convert actions to numpy arrays
             agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
             # rearrange actions to be per environment
