@@ -121,7 +121,7 @@ def local_obs_collect_treasure(self, agent, world):
     return np.concatenate(obs)
 
 
-def make_env(scenario_name, local_observation=True,
+def make_env(scenario_name, local_observation=False,
              benchmark=False, discrete_action=True):
     '''
     Creates a MultiAgentEnv object as env. This can be used similar to a gym

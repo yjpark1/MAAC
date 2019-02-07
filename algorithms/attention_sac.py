@@ -246,9 +246,14 @@ class AttentionSAC(object):
         sa_size = []
         for acsp, obsp in zip(env.action_space,
                               env.observation_space):
-            agent_init_params.append({'num_in_pol': obsp.shape[0],
-                                      'num_out_pol': acsp.n})
-            sa_size.append((obsp.shape[0], acsp.n))
+            if acsp.__class__.__name__ == 'MultiDiscrete':
+                agent_init_params.append({'num_in_pol': obsp.shape[0],
+                                          'num_out_pol': sum(acsp.high + 1)})
+                sa_size.append((obsp.shape[0], sum(acsp.high + 1)))
+            else:
+                agent_init_params.append({'num_in_pol': obsp.shape[0],
+                                          'num_out_pol': acsp.n})
+                sa_size.append((obsp.shape[0], acsp.n))
 
         init_dict = {'gamma': gamma, 'tau': tau, 'attend_tau': attend_tau,
                      'pi_lr': pi_lr, 'q_lr': q_lr,

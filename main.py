@@ -49,10 +49,17 @@ def run(config, run_num):
                                        critic_hidden_dim=config.critic_hidden_dim,
                                        attend_heads=config.attend_heads,
                                        reward_scale=config.reward_scale)
+
+    action_space = []
+    for acsp in env.action_space:
+        if acsp.__class__.__name__ == 'MultiDiscrete':
+            action_space.append(sum(acsp.high + 1))
+        else:
+            action_space.append(acsp.n)
+
     replay_buffer = ReplayBuffer(config.buffer_length, model.nagents,
                                  [obsp.shape[0] for obsp in env.observation_space],
-                                 [acsp.shape[0] if isinstance(acsp, Box) else acsp.n
-                                  for acsp in env.action_space])
+                                 action_space)
 
     episode_rewards = [0.0]  # sum of rewards for all agents
     agent_rewards = [[0.0] for _ in range(env.envs[0].n)]  # individual agent reward
@@ -76,6 +83,8 @@ def run(config, run_num):
                          for i in range(model.nagents)]
             # get actions as torch Variables
             torch_agent_actions = model.step(torch_obs, explore=True)
+            action_n_env = [np.concatenate([x, y], axis=-1) for x, y in zip(action_n[0][0], action_n[1][0])]
+
             # convert actions to numpy arrays
             agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
             # rearrange actions to be per environment
@@ -129,11 +138,11 @@ def run(config, run_num):
             for rew in agent_rewards:
                 final_ep_ag_rewards.append(np.mean(rew[-config.save_interval:]))
 
-        if ep_i % config.save_interval < config.n_rollout_threads:
-            model.prep_rollouts(device='cpu')
-            os.makedirs(run_dir / 'incremental', exist_ok=True)
-            model.save(run_dir / 'incremental' / ('model_ep%i.pt' % (ep_i + 1)))
-            model.save(run_dir / 'model.pt')
+        # if ep_i % config.save_interval < config.n_rollout_threads:
+        #     model.prep_rollouts(device='cpu')
+        #     os.makedirs(run_dir / 'incremental', exist_ok=True)
+        #     model.save(run_dir / 'incremental' / ('model_ep%i.pt' % (ep_i + 1)))
+        #     model.save(run_dir / 'model.pt')
 
     # saves final episode reward for plotting training curve later
     if len(episode_rewards) >= config.n_episodes:
@@ -143,7 +152,7 @@ def run(config, run_num):
             pickle.dump(hist, fp)
         print('...Finished total of {} episodes.'.format(len(episode_rewards)))
 
-    model.save(run_dir / 'model.pt')
+    model.save('Models/model_' + config.env_id + '_' + str(run_num) + '.pt')
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
@@ -190,7 +199,7 @@ if __name__ == '__main__':
     scenarios = ['simple_spread', 'simple_reference', 'simple_speaker_listener',
                  'fullobs_collect_treasure', 'multi_speaker_listener']
 
-    scenarios = ['fullobs_collect_treasure', 'simple_reference']
+    scenarios = ['simple_reference', 'simple_speaker_listener']
 
     for sce in scenarios:
         config.env_id = sce
