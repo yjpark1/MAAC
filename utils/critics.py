@@ -135,8 +135,12 @@ class AttentionCritic(nn.Module):
         all_rets = []
         for i, a_i in enumerate(agents):
             probs = all_attend_probs[i][0]
-            head_entropies = [(-((probs + 1e-8).log() * probs).squeeze().sum(1)
-                               .mean()) for probs in all_attend_probs[i]]
+            ##
+            head_entropies = []
+            for probs in all_attend_probs[i]:
+                e = -((probs + 1e-8).log() * probs).squeeze(1).sum(1).mean()
+                head_entropies.append(e)
+            ##
             agent_rets = []
             critic_in = torch.cat((s_encodings[i], *other_all_values[i]), dim=1)
             all_q = self.critics[a_i](critic_in)

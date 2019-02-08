@@ -103,7 +103,7 @@ class AttentionSAC(object):
                         self.gamma * nq *
                         (1 - dones[a_i].view(-1, 1)))
             if soft:
-                target_q -= log_pi / self.reward_scale
+                target_q -= (log_pi / self.reward_scale).mean(dim=-1, keepdim=True)
             q_loss += MSELoss(pq, target_q.detach())
             for reg in regs:
                 q_loss += reg  # regularizing attention

@@ -199,6 +199,8 @@ if __name__ == '__main__':
 
     scenarios = ['simple_reference', 'simple_speaker_listener']
 
+    # scenarios = ['simple_spread']
+
     for sce in scenarios:
         config.env_id = sce
         for rn in range(10):
